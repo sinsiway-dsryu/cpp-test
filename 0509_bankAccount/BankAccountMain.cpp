@@ -11,11 +11,12 @@ int main(int argc, char* argv[]) {
 
 	BankAccount account;
 	account.init(input_name);
-	account.printAccountInfo();
+	account.printAccountCreateInfo();
 
 	// run bank feature 
 	int bank_feature_number = 0; 
 	do {
+	   printf("0. account info\n");
 	   printf("1. deposit\n");
 	   printf("2. withdraw\n");
 	   printf("3. exit\n");
@@ -29,11 +30,17 @@ int main(int argc, char* argv[]) {
 
 void bankFeature(int number, BankAccount* account) {
 	switch(number) { 
+	case 0: {
+		  account->printAccountInfo();
+		  account->printAmountOfMoney();
+		  break;
+		}
 	case 1: {
 	 	  int deposit = 0;
 		  printf("deposit $ : ");
 		  scanf("%d", &deposit); 
 		  account->deposit(deposit);
+		  account->printAccountInfo();
 		  account->printAmountOfMoney();
 		  break;
 		}
@@ -42,6 +49,7 @@ void bankFeature(int number, BankAccount* account) {
 		  printf("withdraw $ : ");
 		  scanf("%d", &withdraw);
 		  account->withdraw(withdraw);
+		  account->printAccountInfo();
 		  account->printAmountOfMoney();
 		  break;
 		}
