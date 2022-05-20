@@ -1,6 +1,5 @@
 ﻿#include <cstdio>
 
-
 void testFunc(int* a, int* b, int* c);
 void innerTestFunc(int* a, int* b, int* c);
 
