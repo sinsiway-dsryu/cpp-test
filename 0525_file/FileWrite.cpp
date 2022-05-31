@@ -1,5 +1,6 @@
 ﻿#include <cstdio>
-#include <cstring>
+// #include <cstring>
+#include <cstdlib>
 #define MAX_STR_SIZE 100
 
 int main(int argc, char const *argv[])
@@ -12,6 +13,7 @@ int main(int argc, char const *argv[])
         puts("파일 오픈 실패");
         return -1;
     }
+    system("clear"); // cstdlib, console command 
     printf("이름: ");
     scanf("%s", name);
     printf("계좌: ");
