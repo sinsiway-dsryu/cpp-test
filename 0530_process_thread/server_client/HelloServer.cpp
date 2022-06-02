@@ -5,9 +5,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define BUF_SIZE 1024
+#define MAX_CLIENT 5
+
 int initServer(int port);
 int acceptClient(int server_sock);
-void messageSend(int client_sock, const char* message, size_t message_length);
+void messageEcho(int client_sock, char* message, size_t message_length);
 void errorHandler(const char* message);
 
 int main(int argc, char const *argv[])
@@ -19,13 +22,17 @@ int main(int argc, char const *argv[])
     }
     // server init
     int server_sock = initServer(atoi(argv[1]));
-    // accept
-    int client_sock = acceptClient(server_sock);
-    // send to client
-    char msg[30] = "hello_world!";
-    messageSend(client_sock, msg, sizeof(msg));
-    // socket close
-    close(client_sock);
+
+    // accept and message echo
+    char message_buffer[BUF_SIZE];
+    for(int i=0; i < MAX_CLIENT; i++) {
+        int client_sock = acceptClient(server_sock);
+        printf("connected client %d\n", i+1);
+        messageEcho(client_sock, message_buffer, BUF_SIZE);
+        close(client_sock);
+    }
+
+    // server socket close
     close(server_sock);
 
     return 0;
@@ -46,7 +53,7 @@ int initServer(int port) {
     if (bind(server_sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1) {
         errorHandler("bind() error");
     }
-    if (listen(server_sock, 5) == -1) {
+    if (listen(server_sock, MAX_CLIENT) == -1) {
         errorHandler("listen() error");
     }
     return server_sock;
@@ -63,9 +70,12 @@ int acceptClient(int server_sock) {
     return client_sock;
 }
 
-// message send client by write
-void messageSend(int client_sock, const char* message, size_t message_length) {
-    write(client_sock, message, message_length);
+// message echo
+void messageEcho(int client_sock, char* message, size_t message_length) {
+    int read_client_message_length;
+    while((read_client_message_length = read(client_sock, message, message_length)) != 0) {
+        write(client_sock, message, read_client_message_length);
+    }
 }
 
 void errorHandler(const char* message) {

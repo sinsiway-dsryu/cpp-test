@@ -5,8 +5,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define BUF_SIZE 1024
+
 int serverConnect(const char* ip, int port);
-void messageReceive(int sock);
+void messageEcho(int sock);
 void errorHandler(const char* message);
 
 int main(int argc, char const *argv[])
@@ -19,7 +21,7 @@ int main(int argc, char const *argv[])
     // server connection
     int sock = serverConnect(argv[1], atoi(argv[2]));
     // receive from server
-    messageReceive(sock);
+    messageEcho(sock);
     // socket close
     close(sock);
 
@@ -35,24 +37,35 @@ int serverConnect(const char* ip, int port) {
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = inet_addr(ip);
+    // inet_aton(ip, &server_addr.sin_addr);
     server_addr.sin_port = htons(port);
 
     if (connect(sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1) {
         errorHandler("connect() error");
     }
+    puts("server connected...");
 
     return sock;
 }
 
 // message receive from server by read
-void messageReceive(int sock) {
-    char message[30];
-    memset(message, 0, sizeof(message));
-    int read_length = read(sock, message, sizeof(message));
-    if (read_length == -1) {
-        errorHandler("read() error");
+void messageEcho(int sock) {
+    char write_buffer[BUF_SIZE];
+    char read_buffer[BUF_SIZE];
+    while(true) {
+        fputs("input message(Q to quit): ", stdout);
+        fgets(write_buffer, BUF_SIZE, stdin);
+
+        if ((strcmp(write_buffer, "q\n") == 0) || (strcmp(write_buffer, "Q\n") == 0)) {
+            break;
+        }
+        write(sock, write_buffer, strlen(write_buffer));
+
+        if (read(sock, read_buffer, sizeof(read_buffer)-1) == -1) { // -1 ?
+            errorHandler("read() error");
+        }
+        printf("Message from server : %s \n", read_buffer);
     }
-    printf("Message from server : %s \n", message);
 }
 
 void errorHandler(const char* message) {
