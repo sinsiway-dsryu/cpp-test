@@ -43,7 +43,7 @@ int serverConnect(const char* ip, int port) {
     if (connect(sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1) {
         errorHandler("connect() error");
     }
-    puts("server connected...");
+    puts("connected...");
 
     return sock;
 }
@@ -55,15 +55,14 @@ void messageEcho(int sock) {
     while(true) {
         fputs("input message(Q to quit): ", stdout);
         fgets(write_buffer, BUF_SIZE, stdin);
-
         if ((strcmp(write_buffer, "q\n") == 0) || (strcmp(write_buffer, "Q\n") == 0)) {
             break;
         }
+        printf("write_length : %lu\n", strlen(write_buffer));
         write(sock, write_buffer, strlen(write_buffer));
-
-        if (read(sock, read_buffer, sizeof(read_buffer)-1) == -1) { // -1 ?
-            errorHandler("read() error");
-        }
+        int read_length = read(sock, read_buffer, BUF_SIZE-1);
+        printf("read_length : %d\n", read_length);
+        read_buffer[read_length] = 0;
         printf("Message from server : %s \n", read_buffer);
     }
 }

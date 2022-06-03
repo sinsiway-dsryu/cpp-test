@@ -10,7 +10,7 @@
 
 int initServer(int port);
 int acceptClient(int server_sock);
-void messageEcho(int client_sock, char* message, size_t message_length);
+void messageEcho(int sock);
 void errorHandler(const char* message);
 
 int main(int argc, char const *argv[])
@@ -24,11 +24,10 @@ int main(int argc, char const *argv[])
     int server_sock = initServer(atoi(argv[1]));
 
     // accept and message echo
-    char message_buffer[BUF_SIZE];
     for(int i=0; i < MAX_CLIENT; i++) {
         int client_sock = acceptClient(server_sock);
         printf("connected client %d\n", i+1);
-        messageEcho(client_sock, message_buffer, BUF_SIZE);
+        messageEcho(client_sock);
         close(client_sock);
     }
 
@@ -71,10 +70,13 @@ int acceptClient(int server_sock) {
 }
 
 // message echo
-void messageEcho(int client_sock, char* message, size_t message_length) {
-    int read_client_message_length;
-    while((read_client_message_length = read(client_sock, message, message_length)) != 0) {
-        write(client_sock, message, read_client_message_length);
+void messageEcho(int sock) {
+    // char write_buffer[BUF_SIZE];
+    char read_buffer[BUF_SIZE];
+    int read_length;
+    while ((read_length = read(sock, read_buffer, BUF_SIZE)) != 0) {
+        printf("read_length : %d\n", read_length);
+        write(sock, read_buffer, read_length);
     }
 }
 
