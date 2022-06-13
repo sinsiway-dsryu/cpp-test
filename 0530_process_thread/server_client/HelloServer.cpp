@@ -22,15 +22,32 @@ int main(int argc, char const *argv[])
     }
     // server init
     int server_sock = initServer(atoi(argv[1]));
-
     // accept and message echo
+    int pid[MAX_CLIENT];
+    int status[MAX_CLIENT];
+    memset(pid, 0, sizeof(pid));
+    memset(status, 0, sizeof(status));
+
     for(int i=0; i < MAX_CLIENT; i++) {
         int client_sock = acceptClient(server_sock);
-        printf("connected client %d\n", i+1);
-        messageEcho(client_sock);
-        close(client_sock);
+        pid[i] = fork();
+        if (pid[i] < 0) {
+            errorHandler("process fork() failed");
+        }
+        if (pid[i] == 0) {
+            printf("connected client %d\n", i+1);
+            messageEcho(client_sock);
+            close(client_sock);
+            i = (i == 0) ? 0 : (i - 1);
+            exit(0);
+        }
+        if (pid[i] > 0) {
+            printf("child pid : %d\n", pid[i]);
+            // if (waitpid(pid[i], &status[i], WNOHANG) == -1) {
+            //     errorHandler("process wait failed");
+            // }
+        }
     }
-
     // server socket close
     close(server_sock);
 
@@ -38,8 +55,8 @@ int main(int argc, char const *argv[])
 }
 
 int initServer(int port) {
-    int server_sock = socket(PF_INET, SOCK_STREAM, 0); // PF : IPv4 Protocol Family
-    if (server_sock == -1) {
+    int sock = socket(PF_INET, SOCK_STREAM, 0); // PF : IPv4 Protocol Family
+    if (sock == -1) {
         errorHandler("socket() error");
     }
 
@@ -49,13 +66,13 @@ int initServer(int port) {
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY); // host to network long
     server_addr.sin_port = htons(port); // host to network short, ascii(char*) to integer
 
-    if (bind(server_sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1) {
+    if (bind(sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1) {
         errorHandler("bind() error");
     }
-    if (listen(server_sock, MAX_CLIENT) == -1) {
+    if (listen(sock, MAX_CLIENT) == -1) {
         errorHandler("listen() error");
     }
-    return server_sock;
+    return sock;
 }
 
 int acceptClient(int server_sock) {
@@ -75,7 +92,7 @@ void messageEcho(int sock) {
     char read_buffer[BUF_SIZE];
     int read_length;
     while ((read_length = read(sock, read_buffer, BUF_SIZE)) != 0) {
-        printf("read_length : %d\n", read_length);
+        printf("pid : %d / read_buffer : %s\n", getpid(), read_buffer);
         write(sock, read_buffer, read_length);
     }
 }
