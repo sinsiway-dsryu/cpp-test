@@ -5,12 +5,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 10
 #define MAX_CLIENT 5
 
 int initServer(int port);
 int acceptClient(int server_sock);
-void messageEcho(int sock);
+void serverWork(int sock);
 void errorHandler(const char* message);
 
 int main(int argc, char const *argv[])
@@ -27,7 +27,7 @@ int main(int argc, char const *argv[])
     for(int i=0; i < MAX_CLIENT; i++) {
         int client_sock = acceptClient(server_sock);
         printf("connected client %d\n", i+1);
-        messageEcho(client_sock);
+        serverWork(client_sock);
         close(client_sock);
     }
 
@@ -70,14 +70,37 @@ int acceptClient(int server_sock) {
 }
 
 // message echo
-void messageEcho(int sock) {
-    // char write_buffer[BUF_SIZE];
-    char read_buffer[BUF_SIZE];
-    int read_length;
-    while ((read_length = read(sock, read_buffer, BUF_SIZE)) != 0) {
-        printf("read_length : %d\n", read_length);
-        write(sock, read_buffer, read_length);
+void serverWork(int sock) {
+    char p_count;
+    int count = 0;
+    printf("Operand count: ");
+    read(sock, &p_count, sizeof(p_count));
+    if (p_count == 'c') {
+        read(sock, &count, sizeof(count));
     }
+
+    char p_op_arr = 'v';
+    int op_arr[count];
+    for (int i=0; i < count; i++) {
+        printf("Operand %d: ", i);
+        scanf("%d", &op_arr[i]);
+    }
+
+    char p_op = 'o';
+    char op;
+    
+    // char write_buffer[BUF_SIZE];
+    // char read_buffer[BUF_SIZE];
+    // int read_length = 0;
+    // while (read_length != 0) {
+    //     read_length = read(sock, read_buffer, BUF_SIZE);
+    //     if (read_length == -1) {
+    //         errorHandler("read() error");
+    //     }
+    // }
+    // if (write(sock, read_buffer, read_length) == -1) {
+    //         errorHandler("write() error");
+    // }
 }
 
 void errorHandler(const char* message) {
