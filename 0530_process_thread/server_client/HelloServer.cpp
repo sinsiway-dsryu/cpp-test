@@ -26,6 +26,13 @@ int main(int argc, char const *argv[])
     // server init
     int server_sock = initServer(atoi(argv[1]));
 
+    // sigaction
+    struct sigaction act;
+    act.sa_handler = readChildProc;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+    sigaction(SIGCHLD, &act, 0);
+
     // accept and message echo
     for(int i=0; i < MAX_CLIENT; i++) {
         int client_sock = acceptClient(server_sock);
@@ -42,11 +49,6 @@ int main(int argc, char const *argv[])
         }
         if (pid > 0) {
             printf("child pid : %d\n", pid);
-            struct sigaction act;
-            act.sa_handler = readChildProc;
-            sigemptyset(&act.sa_mask);
-            act.sa_flags = 0;
-            sigaction(SIGCHLD, &act, 0);
         }
     }
 
