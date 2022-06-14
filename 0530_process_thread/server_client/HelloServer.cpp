@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #define BUF_SIZE 10
 #define MAX_CLIENT 5
@@ -13,7 +14,7 @@
 void readChildProc(int sig);
 int initServer(int port);
 int acceptClient(int server_sock);
-void serverWork(int sock);
+void messageEcho(int sock);
 void errorHandler(const char* message);
 
 int main(int argc, char const *argv[])
@@ -34,39 +35,42 @@ int main(int argc, char const *argv[])
     sigaction(SIGCHLD, &act, 0);
 
     // accept and message echo
-    for(int i=0; i < MAX_CLIENT; i++) {
+    // for(int i=0; i < MAX_CLIENT; i++) {
+    while (true) {
         int client_sock = acceptClient(server_sock);
-<<<<<<< HEAD
-        printf("connected client %d\n", i+1);
-        serverWork(client_sock);
-        close(client_sock);
-=======
+        if (client_sock == -1) continue;
+        puts("new client connected...");
         pid_t pid = fork();
         if (pid < 0) {
-            errorHandler("process fork() failed");
+            close(client_sock);
+            continue;
         }
         if (pid == 0) {
-            printf("connected client %d\n", i+1);
+            close(server_sock);
+            // printf("client connected - %d\n", i);
             messageEcho(client_sock);
             close(client_sock);
-            i = (i == 0) ? 0 : (i - 1);
+            // printf("client disconnected - %d\n", i);
+            puts("client disconnected...");
             exit(0);
         }
         if (pid > 0) {
-            printf("child pid : %d\n", pid);
+            close(client_sock);
         }
->>>>>>> a6b35a8645da01d188e65526488c2fa695ea4ffb
     }
-
     // server socket close
     close(server_sock);
-
     return 0;
 }
 
 void readChildProc(int sig) {
     int status;
     pid_t pid = waitpid(-1, &status, WNOHANG);
+    // pid_t pid = wait(&status);
+    // pid = wait(&status);
+    // pid = wait(&status); // wait 를 걸면, 여기서 메인이 hang 걸리면서 멈추긴 한다. 당연히 accept도 더이상 불가
+    // 교재는 sigaction에 넘기는 이벤트 핸들러 안에서 waitpid를 잡으라고만 나오는데,
+    // 하나의 자식프로세스라도 messageEcho가 끝나면, main이 끝나버리면서 for문에 걸려 있어야 할..
     if (pid == -1) {
         errorHandler("process wait failed");
     }
@@ -109,47 +113,13 @@ int acceptClient(int server_sock) {
 }
 
 // message echo
-<<<<<<< HEAD
-void serverWork(int sock) {
-    char p_count;
-    int count = 0;
-    printf("Operand count: ");
-    read(sock, &p_count, sizeof(p_count));
-    if (p_count == 'c') {
-        read(sock, &count, sizeof(count));
-    }
-
-    char p_op_arr = 'v';
-    int op_arr[count];
-    for (int i=0; i < count; i++) {
-        printf("Operand %d: ", i);
-        scanf("%d", &op_arr[i]);
-=======
 void messageEcho(int sock) {
-    // char write_buffer[BUF_SIZE];
     char read_buffer[BUF_SIZE];
     int read_length;
     while ((read_length = read(sock, read_buffer, BUF_SIZE)) != 0) {
         write(sock, read_buffer, read_length);
         printf("pid : %d / read_length : %d\n", getpid(), read_length);
->>>>>>> a6b35a8645da01d188e65526488c2fa695ea4ffb
     }
-
-    char p_op = 'o';
-    char op;
-    
-    // char write_buffer[BUF_SIZE];
-    // char read_buffer[BUF_SIZE];
-    // int read_length = 0;
-    // while (read_length != 0) {
-    //     read_length = read(sock, read_buffer, BUF_SIZE);
-    //     if (read_length == -1) {
-    //         errorHandler("read() error");
-    //     }
-    // }
-    // if (write(sock, read_buffer, read_length) == -1) {
-    //         errorHandler("write() error");
-    // }
 }
 
 void errorHandler(const char* message) {
