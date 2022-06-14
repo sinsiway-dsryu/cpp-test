@@ -1,13 +1,16 @@
 ﻿#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <signal.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #define BUF_SIZE 10
 #define MAX_CLIENT 5
 
+void readChildProc(int sig);
 int initServer(int port);
 int acceptClient(int server_sock);
 void serverWork(int sock);
@@ -23,12 +26,36 @@ int main(int argc, char const *argv[])
     // server init
     int server_sock = initServer(atoi(argv[1]));
 
+    // sigaction
+    struct sigaction act;
+    act.sa_handler = readChildProc;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+    sigaction(SIGCHLD, &act, 0);
+
     // accept and message echo
     for(int i=0; i < MAX_CLIENT; i++) {
         int client_sock = acceptClient(server_sock);
+<<<<<<< HEAD
         printf("connected client %d\n", i+1);
         serverWork(client_sock);
         close(client_sock);
+=======
+        pid_t pid = fork();
+        if (pid < 0) {
+            errorHandler("process fork() failed");
+        }
+        if (pid == 0) {
+            printf("connected client %d\n", i+1);
+            messageEcho(client_sock);
+            close(client_sock);
+            i = (i == 0) ? 0 : (i - 1);
+            exit(0);
+        }
+        if (pid > 0) {
+            printf("child pid : %d\n", pid);
+        }
+>>>>>>> a6b35a8645da01d188e65526488c2fa695ea4ffb
     }
 
     // server socket close
@@ -37,9 +64,21 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
+void readChildProc(int sig) {
+    int status;
+    pid_t pid = waitpid(-1, &status, WNOHANG);
+    if (pid == -1) {
+        errorHandler("process wait failed");
+    }
+    if (WIFEXITED(status)) {
+        printf("removed proc id : %d\n", pid);
+        printf("child proc send : %d\n", WEXITSTATUS(status));
+    }
+}
+
 int initServer(int port) {
-    int server_sock = socket(PF_INET, SOCK_STREAM, 0); // PF : IPv4 Protocol Family
-    if (server_sock == -1) {
+    int sock = socket(PF_INET, SOCK_STREAM, 0); // PF : IPv4 Protocol Family
+    if (sock == -1) {
         errorHandler("socket() error");
     }
 
@@ -49,13 +88,13 @@ int initServer(int port) {
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY); // host to network long
     server_addr.sin_port = htons(port); // host to network short, ascii(char*) to integer
 
-    if (bind(server_sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1) {
+    if (bind(sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1) {
         errorHandler("bind() error");
     }
-    if (listen(server_sock, MAX_CLIENT) == -1) {
+    if (listen(sock, MAX_CLIENT) == -1) {
         errorHandler("listen() error");
     }
-    return server_sock;
+    return sock;
 }
 
 int acceptClient(int server_sock) {
@@ -70,6 +109,7 @@ int acceptClient(int server_sock) {
 }
 
 // message echo
+<<<<<<< HEAD
 void serverWork(int sock) {
     char p_count;
     int count = 0;
@@ -84,6 +124,15 @@ void serverWork(int sock) {
     for (int i=0; i < count; i++) {
         printf("Operand %d: ", i);
         scanf("%d", &op_arr[i]);
+=======
+void messageEcho(int sock) {
+    // char write_buffer[BUF_SIZE];
+    char read_buffer[BUF_SIZE];
+    int read_length;
+    while ((read_length = read(sock, read_buffer, BUF_SIZE)) != 0) {
+        write(sock, read_buffer, read_length);
+        printf("pid : %d / read_length : %d\n", getpid(), read_length);
+>>>>>>> a6b35a8645da01d188e65526488c2fa695ea4ffb
     }
 
     char p_op = 'o';

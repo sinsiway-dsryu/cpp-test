@@ -29,15 +29,15 @@ int main(int argc, char const *argv[])
 }
 
 int serverConnect(const char* ip, int port) {
-    struct sockaddr_in server_addr;
     int sock = socket(PF_INET, SOCK_STREAM, 0);
     if (sock == -1) {
         errorHandler("socket() error");
     }
+
+    struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = inet_addr(ip);
-    // inet_aton(ip, &server_addr.sin_addr);
     server_addr.sin_port = htons(port);
 
     if (connect(sock, (struct sockaddr*) &server_addr, sizeof(server_addr)) == -1) {
@@ -80,6 +80,13 @@ void clientWork(int sock) {
         if (read_count == -1) {
             errorHandler("read() error");
         }
+<<<<<<< HEAD
+=======
+        write(sock, write_buffer, strlen(write_buffer));
+        int read_length = read(sock, read_buffer, BUF_SIZE);
+        read_buffer[read_length-1] = '\0'; // 개행을 지우고 \0 (널)로 변경
+        printf("Message from server : %s \n", read_buffer);
+>>>>>>> a6b35a8645da01d188e65526488c2fa695ea4ffb
     }
 
     printf("Opertaion result : %d\n", read_buf);
