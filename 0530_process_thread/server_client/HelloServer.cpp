@@ -1,17 +1,18 @@
 ﻿#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <signal.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
-#include <sys/types.h>
+// #include <sys/types.h>
+#include <arpa/inet.h>
 #include <unistd.h>
-#include <sys/wait.h>
+// #include <sys/wait.h>
+#include <signal.h>
+#include <errno.h>
 
 #define BUF_SIZE 10
-#define MAX_CLIENT 5
+#define MAX_CLIENT 10
 
-void readChildProc(int sig);
+void childProcessHandler(int signal);
 int initServer(int port);
 int acceptClient(int server_sock);
 void messageEcho(int sock);
@@ -19,6 +20,12 @@ void errorHandler(const char* message);
 
 int main(int argc, char const *argv[])
 {
+    // signal handling
+    struct sigaction sigact;
+    sigact.sa_handler = childProcessHandler;
+    sigemptyset(&sigact.sa_mask);
+    sigact.sa_flags = 0;
+    sigaction(SIGCHLD, &sigact, 0);
     // required value check
     if (argc != 2) {
         printf("Usage : %s <port>\n", argv[0]);
@@ -26,35 +33,37 @@ int main(int argc, char const *argv[])
     }
     // server init
     int server_sock = initServer(atoi(argv[1]));
-
-    // sigaction
-    struct sigaction act;
-    act.sa_handler = readChildProc;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags = 0;
-    sigaction(SIGCHLD, &act, 0);
-
     // accept and message echo
-    // for(int i=0; i < MAX_CLIENT; i++) {
-    while (true) {
-        int client_sock = acceptClient(server_sock);
-        if (client_sock == -1) continue;
-        puts("new client connected...");
+    for(int i=0; i < MAX_CLIENT; i++) {
+        // int client_sock = acceptClient(server_sock);
+        struct sockaddr_in client_addr;
+        socklen_t client_addr_size = sizeof(client_addr);
+        printf("=== 서버 소켓으로 accept client 대기 들어가기 : %d\n", server_sock);
+        int client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_addr_size);
+        printf("==== 서버 소켓으로 accept client 처리 완료 server_sock : %d, client_sock : %d\n", server_sock, client_sock);
+        if (client_sock == -1 && errno == EINTR) {
+            puts("EINTR...continue...");
+            continue;
+        } else if (client_sock == -1) {
+            errorHandler("accept() error.. client_sock : -1");
+        }
+        
         pid_t pid = fork();
         if (pid < 0) {
             close(client_sock);
-            continue;
-        }
-        if (pid == 0) {
+            errorHandler("process fork error");
+        } else if (pid == 0) {
+            printf("자식 프로세스 입니다. pid : %d, 서버소켓 닫기 : %d\n", pid, server_sock);
             close(server_sock);
-            // printf("client connected - %d\n", i);
+            printf("자식 프로세스 클라이언트 접속 - 순번 : %d\n", i);
             messageEcho(client_sock);
+            printf("자식 프로세스 에코 서비스 종료 - 소켓닫기 전: %d\n", client_sock);
             close(client_sock);
-            // printf("client disconnected - %d\n", i);
-            puts("client disconnected...");
+            printf("자식 프로세스 클라이언트 접속 종료 - 순번 : %d\n", i);
             exit(0);
-        }
-        if (pid > 0) {
+        } else if (pid > 0) {
+            printf("부모 프로세스가 보는 자식 프로세스의 pid : %d\n", pid);
+            printf("부모 프로세스는 사용한 클라이언트 소켓 닫기 : %d\n", client_sock);
             close(client_sock);
         }
     }
@@ -63,21 +72,23 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-void readChildProc(int sig) {
+void childProcessHandler(int signal) {
     int status;
-    pid_t pid = waitpid(-1, &status, WNOHANG);
-    // pid_t pid = wait(&status);
-    // pid = wait(&status);
-    // pid = wait(&status); // wait 를 걸면, 여기서 메인이 hang 걸리면서 멈추긴 한다. 당연히 accept도 더이상 불가
-    // 교재는 sigaction에 넘기는 이벤트 핸들러 안에서 waitpid를 잡으라고만 나오는데,
-    // 하나의 자식프로세스라도 messageEcho가 끝나면, main이 끝나버리면서 for문에 걸려 있어야 할..
+    pid_t pid;
+    printf("핸들러의 waitpid 처리 시작\n");
+    // pid = waitpid(-1, &status, WNOHANG); 
+    // pid = waitpid(-1, &status, 0); 
+    pid = wait(&status); 
+        // printf("waitpid - while 문 진입\n");
     if (pid == -1) {
         errorHandler("process wait failed");
     }
     if (WIFEXITED(status)) {
-        printf("removed proc id : %d\n", pid);
-        printf("child proc send : %d\n", WEXITSTATUS(status));
+        printf("removed pid : %d\n", pid);
+        printf("exit value  : %d\n", WEXITSTATUS(status));
     }
+    printf("waitpid - 정보 출력 완료\n");
+    // printf("waitpid - while 문 종료\n");
 }
 
 int initServer(int port) {
@@ -104,10 +115,11 @@ int initServer(int port) {
 int acceptClient(int server_sock) {
     struct sockaddr_in client_addr;
     socklen_t client_addr_size = sizeof(client_addr);
-    
+    printf("=== 서버 소켓으로 accept client 대기 들어가기 : %d\n", server_sock);
     int client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_addr_size);
+    printf("==== 서버 소켓으로 accept client 처리 완료 server_sock : %d, client_sock : %d\n", server_sock, client_sock);
     if (client_sock == -1) {
-        errorHandler("accept() error");
+        errorHandler("accept() error.. client_sock : -1");
     }
     return client_sock;
 }
@@ -120,6 +132,7 @@ void messageEcho(int sock) {
         write(sock, read_buffer, read_length);
         printf("pid : %d / read_length : %d\n", getpid(), read_length);
     }
+    printf("자식 프로세스 에코 함수 종료 - client sock : %d\n", sock);
 }
 
 void errorHandler(const char* message) {

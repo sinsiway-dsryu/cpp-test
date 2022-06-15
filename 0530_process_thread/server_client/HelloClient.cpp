@@ -22,9 +22,10 @@ int main(int argc, char const *argv[])
     int sock = serverConnect(argv[1], atoi(argv[2]));
     // receive from server
     clientWork(sock);
+    printf("q를 입력해서 메시지 처리를 빠져나옴 - 접속소켓 : %d\n", sock);
     // socket close
     close(sock);
-
+    printf("클라이언트 접속 소켓 닫음 이제 종료\n");
     return 0;
 }
 
