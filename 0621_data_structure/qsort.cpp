@@ -1,10 +1,8 @@
 ﻿#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#define READ_STR_SIZE 16
+#define WORD_MAX_SIZE 16
 
-// void setStrArray(char* str_arr[], int row, FILE* fp);
-void setStrArray(char str_arr[][READ_STR_SIZE], int row, FILE* fp);
 int getLineCount(FILE* fp);
 int compare(const void *a, const void *b);
 
@@ -15,51 +13,70 @@ int main(int argc, char const *argv[])
         puts("file open error");
         exit(1);
     }
-
-    int row = getLineCount(fp);
-    // char* str_arr[row];
-    printf("row : %d\n", row);
-    char str_arr[row][READ_STR_SIZE];
-    setStrArray(str_arr, row, fp);
-    printf("==== BEFORE ====\n");
-    for (int i=0; i < row; i++) {
-        printf("%s", &str_arr[i][READ_STR_SIZE]);
-    }
-    // qsort(*str_arr, row, READ_STR_SIZE, compare);
-    qsort(str_arr, row + 1, READ_STR_SIZE, compare);
-
-    // for (int i=0; i < row-1; i++) {
-    //     compare(str_arr[i], str_arr[i+1]);
-    //     // printf("%s", str_arr[i]);
+    // fscanf 사용하기 - fgets 사용시 printf(%s)로는 안보이나, qsort가 받는 배열 첫번째 요소가 \000 이 
+    // char str_arr[15][WORD_MAX_SIZE];
+    // int row = 0;
+    // while (fscanf(fp, "%s", &str_arr[row][WORD_MAX_SIZE]) != EOF) {
+    //     row++;
     // }
-    printf("==== AFTER ====\n");
-    for (int i=0; i < row; i++) {
-        printf("%s", &str_arr[i][READ_STR_SIZE]);
+
+    // fread - buffer size full
+    fseek(fp, 0, SEEK_END);
+    long file_size = ftell(fp);
+    rewind(fp);
+    char* file_buffer = (char*)malloc(sizeof(char) * file_size);
+    if (file_buffer == NULL) {
+        fputs("memory error", stderr);
+        exit(2);
     }
+    size_t file_read_size = fread(file_buffer, sizeof(char), file_size, fp);
+    if (file_read_size != file_size) {
+        fputs("file read error", stderr);
+        exit(3);
+    }
+    int row = 0;
+    for (int i = 0; i < file_read_size; i++) {
+        if (file_buffer[i] == '\n') {
+            row++;
+        }
+    }
+    printf("row : %d\n", row);
+    char str_arr[row][WORD_MAX_SIZE];
+    memset(str_arr, 0, sizeof(str_arr));
+    int char_index = 0;
+    int str_index = 0;
+    for (int i = 0; i < file_read_size; i++) {
+        if (file_buffer[i] == '\n') {
+            printf("str_arr : %s\n", &str_arr[str_index][WORD_MAX_SIZE]);
+            char_index = 0;
+            str_index++;
+            continue;
+        }
+        str_arr[str_index][char_index] = file_buffer[i];
+        printf("str_arr : %c\n", str_arr[str_index][char_index]);
+        char_index++;
+    }
+    printf("char_index : %d\n", char_index);
+    printf("str_index : %d\n", str_index);
+    // char str_arr[row][WORD_MAX_SIZE];
+
+    printf("==== BEFORE ====\n");
+    // for (int i=0; i < str_index; i++) {
+        // printf("%s\n", &str_arr[i][WORD_MAX_SIZE]);
+    // }
+    printf("%s\n", &str_arr[0][WORD_MAX_SIZE]);
+    // qsort(str_arr, row, WORD_MAX_SIZE, compare);
+
+    // printf("==== AFTER ====\n");
+    // for (int i=0; i < row; i++) {
+    //     printf("%s\n", &str_arr[i][WORD_MAX_SIZE]);
+    // }
+    
+    // fread free
+    free(file_buffer);
 
     fclose(fp);
-    // for (int i=0; i < row; i++) {
-    //     free(str_arr[i]);
-    // }
     return 0;
-}
-
-void setStrArray(char str_arr[][READ_STR_SIZE], int row, FILE* fp) {
-    for(int i=0; i < row; i++) {
-        // char* word = (char*)malloc(sizeof(char)* READ_STR_SIZE);
-        memset(*str_arr, 0, sizeof(char)* READ_STR_SIZE);
-        fgets(&str_arr[i][READ_STR_SIZE], READ_STR_SIZE, fp);
-        // str_arr[i][READ_STR_SIZE] = *word;
-    }
-}
-
-int getLineCount(FILE* fp) {
-    int row = 0;
-    while (!feof(fp)) {
-        if (fgetc(fp) == '\n') row++;
-    }
-    fseek(fp, 0, SEEK_SET);
-    return row;
 }
 
 // 아스키코드 순서로 정렬
