@@ -12,33 +12,53 @@ struct Tree {
     Node* root_node;
 };
 
+Node* newNode(int number) {
+    Node* node = new Node;
+    node->data = number;
+    node->left_node = NULL;
+    node->right_node = NULL;
+    return node;
+} 
+
 // 이진트리는 항상 root로 값이 들어와야, 대소비교를 하면서 리프 노드를 붙이는 
-void insertTree(int number, Node* node) {
+void addNode(Node* node, int number) {
     if (node == NULL) {
-        node = new Node;
-        node->data = number;
-        node->left_node = NULL;
-        node->right_node = NULL;
-        return;
+        newNode(number);
     }
     // 대소비교하고 재귀
-    if (node->data >= number) {
-        insertTree(number, node->right_node);
-    }
     if (node->data < number) {
-        insertTree(number, node->left_node);
+        Node* child_node = new Node;
+        child_node->data = number;
+
+    }
+    if (node->data > number) {
+        addNode(number, node->right_node);
     }
 }
 
 // 이진트리 출력 - 중위순회
-void printTree(Node* node) {
-    if (node->left_node == NULL) {
-        printf("%d\n", node->data);
+// r -> l -> l -> l -> x -> p -> r -> x -> p
+void printNode(Node* child_node, Node* parent_node) {
+    if (child_node->left_node == NULL && child_node->right_node == NULL) {
+        printf("%d\n", child_node->data);
+        if (child_node != parent_node) {
+            printRightNode();
+        }
     }
-    if (node->right_node == NULL) {
-        printf("%d\n", node->data);
+    if (child_node->left_node != NULL) {
+        printNode(child_node->left_node, child_node);
+    } 
+    if (child_node->right_node != NULL) {
+        printf("%d\n", child_node->data);
+        printNode(child_node->right_node, child_node);
     }
+     
+}
 
+void printRightNode(Node* child_node, Node* parent_node) {
+    if (child_node->right_node != NULL) {
+        printTree(child_node->right_node, child_node);
+    }
 }
 
 int main(int argc, char const *argv[])
