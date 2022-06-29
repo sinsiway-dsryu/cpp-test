@@ -47,61 +47,66 @@ void deleteList(List* list) {
     free(list);
 }
 
-Node* addNode(Node* before_node, List* list) {
-    Node* new_node = newNode();
-    before_node->next_node = new_node;
-    list->tail_node = new_node;
-    return new_node;
+// Node* addNode(Node* before_node, List* list) {
+Node* addNode(List* list) {
+    // Node* new_node = newNode();
+    // before_node->next_node = new_node;
+    // list->tail_node = new_node;
+    // return new_node;
+    list->tail_node->next_node = newNode();
+    list->tail_node = list->tail_node->next_node;
+    return list->tail_node;
 }
 
 void removeNode(const char* node_data, List* list) {
-    // find
-    Node* current_node = list->head_node;
+    Node* find_node = list->head_node;
     Node* before_node = NULL;
-    int find_flag = 1;
-    while (current_node != NULL) {
-        if ((find_flag = strcmp(current_node->node_data, node_data)) == 0) break;
-        before_node = current_node;
-        current_node = current_node->next_node;
+    // while (find_node != NULL) { // 마지막 노드까지 찾기위해, find_node가 NULL이 되어야 끝나도록 조건 정의. while 조건에 strcmp를 넣어도 될 것 같음
+    while (find_node) { // Null이면 while 종료
+        if (strcmp(find_node->node_data, node_data) == 0) break;
+        before_node = find_node;
+        find_node = find_node->next_node; // node 만 찾아서 if 절 밖에서 삭제
     }
-    if (find_flag == 1) {
+    // 삭제 node 를 찾지 못함
+    if (find_node == NULL) { 
         printf("data not found : %s\n", node_data);
         return;
     }
-    // remove
     // remove - single node
-    if (before_node == NULL && current_node->next_node == NULL) {
-        memset(current_node->node_data, 0, sizeof(char) * WORD_MAX_SIZE);
+    if (before_node == NULL && find_node->next_node == NULL) {
+        memset(find_node->node_data, 0, sizeof(char) * WORD_MAX_SIZE);
         return;
     }
     // remove - head node
     if (before_node == NULL) {
-        list->head_node = current_node->next_node;
-        deleteNode(current_node);
+        list->head_node = find_node->next_node;
+        deleteNode(find_node);
         return;
     }
     // remove - tail node
-    if (current_node->next_node == NULL) {
+    if (find_node->next_node == NULL) {
         list->tail_node = before_node;
-        deleteNode(current_node);
+        deleteNode(find_node);
         return;
     }
-    before_node->next_node = current_node->next_node;
-    deleteNode(current_node);
+    before_node->next_node = find_node->next_node;
+    deleteNode(find_node);
 }
 
 void printList(List* list) {
     Node* current_node = list->head_node;
-    while (current_node != list->tail_node) {
+    // while (current_node != list->tail_node) {
+    while (current_node) { // node가 null이면 false로 알아서 종료
         printf("%s\n", current_node->node_data);
         current_node = current_node->next_node;
     }
-    printf("%s\n", list->tail_node->node_data); // print tail node
+    // printf("%s\n", list->tail_node->node_data); // print tail node - while(current_node)에선 불필요..
 }
 
 int main(int argc, char const *argv[])
 {
     FILE* fp = fopen("keywords.txt", "rt");
+    // FILE* fp = fopen("test.txt", "rt");
     if (fp == NULL) {
         fputs("file open error", stderr);
         exit(1);
@@ -110,8 +115,11 @@ int main(int argc, char const *argv[])
     // 리스트 초기화
     List* list = newList();
     Node* node = list->tail_node;
-    while (fscanf(fp, "%s", node->node_data) != EOF) {
-        node = addNode(node, list);
+    // while (fscanf(fp, "%s", node->node_data) != EOF) {
+    while (!feof(fp)) {
+        fscanf(fp, "%s", node->node_data);
+        // node = addNode(node, list);
+        node = addNode(list);
     }
     printf("==== Before ====\n");
     printList(list); // 출력
