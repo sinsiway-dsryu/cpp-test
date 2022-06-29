@@ -37,7 +37,14 @@ List* newList() {
 }
 
 void deleteList(List* list) {
-
+    Node* target_node;
+    while (list->head_node != list->tail_node) {
+        target_node = list->head_node;
+        list->head_node = list->head_node->next_node;
+        deleteNode(target_node);
+    }
+    deleteNode(list->tail_node);
+    free(list);
 }
 
 Node* addNode(Node* before_node, List* list) {
@@ -85,10 +92,11 @@ void removeNode(const char* node_data, List* list) {
 
 void printList(List* list) {
     Node* current_node = list->head_node;
-    while (current_node->next_node != NULL) {
+    while (current_node != list->tail_node) {
         printf("%s\n", current_node->node_data);
         current_node = current_node->next_node;
     }
+    printf("%s\n", list->tail_node->node_data); // print tail node
 }
 
 int main(int argc, char const *argv[])
